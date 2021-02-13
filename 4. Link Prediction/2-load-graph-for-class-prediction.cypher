@@ -21,5 +21,11 @@ CALL gds.graph.create(
       orientation: 'UNDIRECTED',
       properties: ['times'],
       aggregation: 'SINGLE'
+    },
+    APPEARED_WITH_HOLDOUT: { //I don't actually need this for node classification
+      type: 'APPEARED_WITH_HOLDOUT',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
     }
 });

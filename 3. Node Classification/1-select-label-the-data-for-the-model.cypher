@@ -17,3 +17,8 @@ WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
 AND apoc.node.degree(c)>0 WITH c
 WHERE rand() < 0.2
 SET c:Model_Data, c.is_xman=0;
+
+//3. label the holdout data too (to predict on)
+MATCH (c:Character)
+WHERE NOT (c:Model_Data)
+SET c:Holdout_Data;
