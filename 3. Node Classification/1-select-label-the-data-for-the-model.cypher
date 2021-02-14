@@ -1,13 +1,6 @@
-//1. Select & label the data for the model
-//MATCH(c:Model_Data) REMOVE (c:Model_Data);
-
-//MATCH (c:Character) <-- you only need this if you're cleaning up from a previous run
-//WHERE c.is_xman=0
-//REMOVE c.is_xman;
-
-//2: find the x-men and tag them, then flag to use in model
-//MATCH (c:Character)-[:PART_OF_GROUP]-> (g:Group{name:'X-Men'})
-//SET c.is_xman=1, c:Model_Data;
+//1. Select & label the data for the model -find the x-men and tag them, then flag to use in model
+MATCH (c:Character)-[:PART_OF_GROUP]-> (g:Group{name:'X-Men'})
+SET c.is_xman=1, c:Model_Data;
 
 //2: find and include some unaffiliated individuals that are very far from x-men (but not orphan nodes)
 // there are way more not x-men (133 with other affiliations, 936 with no known group) so we need to downsample for training
