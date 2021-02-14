@@ -7,5 +7,7 @@ This demo shows how to:
 2) Train graph embeddings as an input for a model
 3) Predict missing node labels (in this case, who's an X-Man)
 4) Predict missing relationships (who will appear in a future comic book together)
+5) Use the trained models to make predictions
 
-I'll add a demo of applying the models and then reviewing the results in Bloom later 
+I've also uploaded a bloom perspective, to let you explore your results visually.
+
