@@ -11,3 +11,5 @@ This demo shows how to:
 
 I've also uploaded a bloom perspective, to let you explore your results visually.
 
+For further documentation on using the GDS ML functions, check out our docs [here](https://neo4j.com/docs/graph-data-science/1.5/algorithms/ml-models/)
+
