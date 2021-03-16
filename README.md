@@ -19,5 +19,5 @@ For further documentation on using the GDS ML functions, check out our docs [her
 Added [browser guide](https://neo4j.com/developer/guide-create-neo4j-browser-guide/) to allow to repeat/share the example
 
 Can either:
-1) Run from .html if you host it
-2) Build from adocs and using render.sh
+1) Run from existing .html files in browserguide hosted under a web server
+2) Build from adocs using render.sh
