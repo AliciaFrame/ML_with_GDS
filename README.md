@@ -16,7 +16,7 @@ For further documentation on using the GDS ML functions, check out our docs [her
 
 ## BrowserGuides
 
-Added [browser guide] (https://neo4j.com/developer/guide-create-neo4j-browser-guide/) to allow to repeat/share the example
+Added [browser guide](https://neo4j.com/developer/guide-create-neo4j-browser-guide/) to allow to repeat/share the example
 
 Can either:
 1) Run from .html if you host it
