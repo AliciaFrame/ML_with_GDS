@@ -6,9 +6,9 @@ SET c.is_xman=1, c:Model_Data;
 // there are way more not x-men (133 with other affiliations, 936 with no known group) so we need to downsample for training
 MATCH (c:Character)
 WHERE NOT (c)-[:PART_OF_GROUP]->(:Group) WITH c
-WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1}) 
+WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
 AND apoc.node.degree(c)>0 WITH c
-WHERE rand() < 0.2
+WHERE rand() < 0.13 
 SET c:Model_Data, c.is_xman=0;
 
 //3. label the holdout data too (to predict on)

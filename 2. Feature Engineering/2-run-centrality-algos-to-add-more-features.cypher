@@ -1,4 +1,4 @@
-//2. run centrality algos to add more features 
+//2. run centrality algos to add more features
 // pageRank
 CALL gds.pageRank.write('marvel-character-graph',{
      relationshipTypes: ['APPEARS_WITH_DIRECTED'],
@@ -37,12 +37,12 @@ CALL gds.alpha.hits.write('marvel-character-graph',{
 CALL gds.alpha.hits.write('marvel-character-graph',{
      relationshipTypes: ['ALLY_DIRECTED'],
      hitsIterations: 50,
-     authProperty: 'appeared_with_auth',
-     hubProperty: 'appeared_with_hub'
+     authProperty: 'ally_auth',
+     hubProperty: 'ally_hub'
 });
 CALL gds.alpha.hits.write('marvel-character-graph',{
      relationshipTypes: ['ENEMY_DIRECTED'],
      hitsIterations: 50,
-     authProperty: 'appeared_with_auth',
-     hubProperty: 'appeared_with_hub'
+     authProperty: 'enemy_auth',
+     hubProperty: 'enemy_hub'
 });

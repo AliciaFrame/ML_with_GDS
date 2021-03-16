@@ -2,15 +2,17 @@
 CALL gds.graph.create(
   'marvel-character-graph',
   {
-    Person: {
+    Character: {
       label: 'Character',
-      properties: { 
+      properties: {
       strength:{property:'strength',defaultValue:0},
       fighting_skills:{property:'fighting_skills', defaultValue:0},
       durability:{property:'durability', defaultValue:0},
       speed:{property:'speed', defaultValue:0},
       intelligence:{property:'intelligence', defaultValue:0},
-      group_membership:{property:'group_membership',defaultValue:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}
+      // gave error Failed to invoke procedure `gds.graph.create`: Caused by: java.lang.IllegalArgumentException: [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]:java.util.ArrayList] is not a supported property value
+      //group_membership:{property:'group_membership',defaultValue:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}
+      group_membership:{property:'group_membership',defaultValue:0}
       }
     }
   }, {
@@ -35,7 +37,7 @@ CALL gds.graph.create(
       type: 'ALLY',
       orientation: 'NATURAL',
       aggregation: 'SINGLE'
-    },    
+    },
     ENEMY_UNDIRECTED: {
       type: 'ENEMY',
       orientation: 'UNDIRECTED',
@@ -46,6 +48,5 @@ CALL gds.graph.create(
       orientation: 'NATURAL',
       aggregation: 'SINGLE'
     }
-   
-});
 
+});

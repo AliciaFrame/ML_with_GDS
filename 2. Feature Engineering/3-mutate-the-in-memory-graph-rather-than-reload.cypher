@@ -37,12 +37,20 @@ CALL gds.alpha.hits.mutate('marvel-character-graph',{
 CALL gds.alpha.hits.mutate('marvel-character-graph',{
      relationshipTypes: ['ALLY_DIRECTED'],
      hitsIterations: 50,
-     authProperty: 'appeared_with_auth',
-     hubProperty: 'appeared_with_hub'
+     authProperty: 'ally_auth',
+     hubProperty: 'ally_hub'
 });
 CALL gds.alpha.hits.mutate('marvel-character-graph',{
      relationshipTypes: ['ENEMY_DIRECTED'],
      hitsIterations: 50,
-     authProperty: 'appeared_with_auth',
-     hubProperty: 'appeared_with_hub'
+     authProperty: 'enemy_auth',
+     hubProperty: 'enemy_hub'
 });
+
+// write back properties 
+CALL gds.graph.writeNodeProperties(
+  'marvel-character-grap',
+  ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_auth','ally_pageRank',
+  'ally_betweenness','ally_hub','ally_auth','enemy_pageRank','enemy_betweenness','enemy_hub','enemy_auth'],
+  ['Character']
+);
