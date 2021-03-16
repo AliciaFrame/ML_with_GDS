@@ -4,9 +4,9 @@ CALL gds.graph.create(
   {
     Character: {
       label: 'Character',
-      properties: { 
+      properties: {
         fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
-        graphSAGE_embedding:{property:'graphSAGE_embedding', defaultValue:0},
+        //graphSAGE_embedding:{property:'graphSAGE_embedding', defaultValue:0},
         strength:{property:'strength', defaultValue:0},
         durability:{property:'durability', defaultValue:0},
         intelligence:{property:'intelligence', defaultValue:0},

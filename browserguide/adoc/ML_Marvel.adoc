@@ -1,0 +1,497 @@
+= Feature Engineering
+
+== Load Graph with features into Analytical Workspace
+
+[source,cypher]
+----
+CALL gds.graph.create(
+  'marvel-character-graph',
+  {
+    Character: {
+      label: 'Character',
+      properties: {
+      strength:{property:'strength',defaultValue:0},
+      fighting_skills:{property:'fighting_skills', defaultValue:0},
+      durability:{property:'durability', defaultValue:0},
+      speed:{property:'speed', defaultValue:0},
+      intelligence:{property:'intelligence', defaultValue:0},
+      group_membership:{property:'group_membership',defaultValue: 0}
+      }
+    }
+  }, {
+    APPEARS_WITH_UNDIRECTED: {
+      type: 'APPEARED_WITH',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE',
+      properties: ['times']
+    },
+    APPEARS_WITH_DIRECTED: {
+      type: 'APPEARED_WITH',
+      orientation: 'NATURAL',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    },
+    ALLY_UNDIRECTED: {
+      type: 'ALLY',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE'
+    },
+    ALLY_DIRECTED: {
+      type: 'ALLY',
+      orientation: 'NATURAL',
+      aggregation: 'SINGLE'
+    },
+    ENEMY_UNDIRECTED: {
+      type: 'ENEMY',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE'
+    },
+    ENEMY_DIRECTED: {
+      type: 'ENEMY',
+      orientation: 'NATURAL',
+      aggregation: 'SINGLE'
+    }
+
+});
+----
+
+== Calculate Features - Centrality - PageRank
+
+The PageRank algorithm measures the importance of each node within the graph, based on the number incoming relationships and the importance of the corresponding source nodes. The underlying assumption roughly speaking is that a page is only as important as the pages that link to it.
+
+Mutate in Analytical Workspace
+
+[source,cypher]
+----
+CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_DIRECTED'],
+     mutateProperty: 'appeared_with_pageRank'
+});
+CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_DIRECTED'],
+     mutateProperty: 'ally_pageRank'
+});
+CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_DIRECTED'],
+     mutateProperty: 'enemy_pageRank'
+});
+----
+
+
+== Calculate Features - Centrality - Betweenness
+
+Betweenness centrality is a way of detecting the amount of influence a node has over the flow of information in a graph. It is often used to find nodes that serve as a bridge from one part of a graph to another.
+
+[source,cypher]
+----
+CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_UNDIRECTED'],
+     mutateProperty: 'appeared_with_betweenness'
+});
+CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_UNDIRECTED'],
+     mutateProperty: 'ally_betweenness'
+});
+CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_UNDIRECTED'],
+     mutateProperty: 'enemy_betweenness'
+});
+----
+
+== Calculate Features - Centrality - HITS
+
+The Hyperlink-Induced Topic Search (HITS) is a link analysis algorithm that rates nodes based on two scores, a hub score and an authority score. The authority score estimates the importance of the node within the network. The hub score estimates the value of its relationships to other nodes.
+
+[source,cypher]
+----
+CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'appeared_with_auth',
+     hubProperty: 'appeared_with_hub'
+});
+CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'ally_auth',
+     hubProperty: 'ally_hub'
+});
+CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'enemy_auth',
+     hubProperty: 'enemy_hub'
+});
+----
+
+== Persist features
+
+[source,cypher]
+----
+CALL gds.graph.writeNodeProperties(
+  'marvel-character-graph',
+  ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_auth','ally_pageRank',
+  'ally_betweenness','ally_hub','ally_auth','enemy_pageRank','enemy_betweenness','enemy_auth','enemy_hub'],
+  ['Character']
+);
+----
+
+== Compute Embeddings - fastRP
+
+[source,cypher]
+----
+CALL gds.beta.fastRPExtended.write('marvel-character-graph',{
+    relationshipTypes:['APPEARS_WITH_UNDIRECTED'],
+    featureProperties: ['strength','fighting_skills','durability','speed','intelligence','appeared_with_pageRank','ally_pageRank','enemy_pageRank','appeared_with_betweenness','ally_betweenness','enemy_betweenness','appeared_with_hub','appeared_with_auth','ally_hub','ally_auth','enemy_hub','enemy_auth'],
+    relationshipWeightProperty: 'times',
+    propertyDimension: 45,
+    embeddingDimension: 250,
+    iterationWeights: [0, 0, 1.0, 1.0],
+    normalizationStrength:0.05,
+    writeProperty: 'fastRP_Extended_Embedding'
+})
+----
+
+== Drop Extra Graphs
+
+[source,cypher]
+----
+call gds.graph.drop('marvel-character-graph');
+----
+
+= Node Classification
+
+== Train Node Classification Model in Neo4j
+
+++++
+<div class="col-lg-4">
+<img src="http://localhost:8001/img/NodeClassification.png" class="img-responsive">
+</div>
+++++
+
+== Label Data
+
+Select & label the data for the model -find the x-men and tag them, then flag to use in model
+
+[source,cypher]
+----
+MATCH (c:Character)-[:PART_OF_GROUP]->(g:Group{name:'X-Men'})
+SET c.is_xman=1, c:Model_Data;
+----
+
+Find and include some unaffiliated individuals that are very far from x-men (but not orphan nodes)
+ there are way more not x-men (133 with other affiliations, 936 with no known group) so we need to downsample for training
+
+[source,cypher]
+----
+MATCH (c:Character)
+WHERE NOT (c)-[:PART_OF_GROUP]->(:Group) WITH c
+WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
+AND apoc.node.degree(c)>0 WITH c
+WHERE rand() < 0.13 // class rebalancing
+SET c:Model_Data, c.is_xman=0;
+----
+
+Label the holdout data (to predict on)
+
+[source,cypher]
+----
+MATCH (c:Character)
+WHERE NOT (c:Model_Data)
+SET c:Holdout_Data;
+----
+
+== Load graph for class prediction
+
+[source,cypher]
+----
+CALL gds.graph.create(
+  'marvel_model_data',
+  {
+    Character: {
+      label: 'Model_Data',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    },
+    Holdout_Character: {
+      label: 'Holdout_Data',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    }
+  }, {
+    APPEARED_WITH: {
+      type: 'APPEARED_WITH',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    }
+});
+----
+
+
+== Train node classifier to find x-men: fastRP
+
+[source,cypher]
+----
+CALL gds.alpha.ml.nodeClassification.train('marvel_model_data', {
+   nodeLabels: ['Character'],
+   modelName: 'xmen-model-fastRP',
+   featureProperties: ['fastRP_embedding'],
+   targetProperty: 'is_xman',
+   metrics: ['F1_WEIGHTED','ACCURACY'],
+   holdoutFraction: 0.2,
+   validationFolds: 5,
+   randomSeed: 2,
+   params: [
+       {penalty: 0.0625, maxIterations: 1000},
+       {penalty: 0.125, maxIterations: 1000},
+       {penalty: 0.25, maxIterations: 1000},
+       {penalty: 0.5, maxIterations: 1000},
+       {penalty: 1.0, maxIterations: 1000},
+       {penalty: 2.0, maxIterations: 1000},
+       {penalty: 4.0, maxIterations: 1000}
+       ]
+    }) YIELD modelInfo
+  RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
+  modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore
+----
+
+== Compare to tabular properties
+
+[source,cypher]
+----
+CALL gds.alpha.ml.nodeClassification.train('marvel_model_data', {
+   nodeLabels: ['Character'],
+   modelName: 'xmen-model-properties',
+   featureProperties: ['energy','speed','strength','durability','intelligence'],
+   targetProperty: 'is_xman',
+   metrics: ['F1_WEIGHTED','ACCURACY'],
+   holdoutFraction: 0.2,
+   validationFolds: 5,
+   randomSeed: 2,
+   params: [
+       {penalty: 0.0625, maxIterations: 1000},
+       {penalty: 0.125, maxIterations: 1000},
+       {penalty: 0.25, maxIterations: 1000},
+       {penalty: 0.5, maxIterations: 1000},
+       {penalty: 1.0, maxIterations: 1000},
+       {penalty: 2.0, maxIterations: 1000},
+       {penalty: 4.0, maxIterations: 1000}
+       ]
+    }) YIELD modelInfo
+  RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
+  modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore
+----
+
+== Lets predict node classes (aka: can we find more x-men?)
+
+[source,cypher]
+----
+CALL gds.alpha.ml.nodeClassification.predict.mutate('marvel_model_data', {
+  nodeLabels: ['Holdout_Character'], //filter our the character nodes
+  modelName: 'xmen-model-fastRP',
+  mutateProperty: 'predicted_xman',
+  predictedProbabilityProperty: 'predicted_xman_probability'
+});
+CALL gds.graph.writeNodeProperties(
+  'marvel_model_data',
+  ['predicted_xman', 'predicted_xman_probability'],
+  ['Holdout_Character']
+);
+----
+
+Check our predicted node classes
+
+[source,cypher]
+----
+MATCH (c:Character)
+WHERE c.predicted_xman = 1 AND NOT c:Model_Data
+RETURN c.name, c.aliases, c.predicted_xman, c.predicted_xman_probability[1] as probability
+----
+
+= Link Prediction
+
+== Train a Link Prediction Model in Neo4j
+
+++++
+<div class="col-lg-4">
+<img src="http://localhost:8001/img/LinkPrediction.png" class="img-responsive">
+</div>
+++++
+
+== Label Data
+
+Split the graph into the data we want to use for the model, and data to hold out to test afterwards
+
+[source,cypher]
+----
+MATCH (c1:Character)-[:APPEARED_IN]->(c:Comic)<-[:APPEARED_IN]-(c2:Character)
+WHERE c.year <> "2020" AND c.year <> "2019" AND c.year <> "2018" AND c.year <> "2017" AND c.year <> "2016"
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH_MODEL{times:weight}]->(c2)
+MERGE (c2)-[:APPEARED_WITH_MODEL{times:weight}]->(c1);
+
+MATCH (c1:Character)-[:APPEARED_IN]->(c:Comic)<-[:APPEARED_IN]-(c2:Character)
+WHERE c.year="2020" OR c.year="2019" OR c.year="2018" OR c.year="2017" OR c.year="2016"
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH_HOLDOUT{times:weight}]->(c2)
+MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]->(c1);
+----
+
+== Load graph for class prediction
+
+[source,cypher]
+----
+CALL gds.graph.create(
+  'marvel_linkpred_data',
+  {
+    Character: {
+      label: 'Character',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    }
+  }, {
+    APPEARED_WITH: {
+      type: 'APPEARED_WITH_MODEL',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    },
+    APPEARED_WITH_HOLDOUT: {
+      type: 'APPEARED_WITH_HOLDOUT',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    }
+});
+----
+
+== Add test train splits to in-memory graph
+
+[source,cypher]
+----
+CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH'],
+  remainingRelationshipType: 'APPEARED_WITH_REMAINING',
+  holdoutRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  holdoutFraction: 0.2
+}) YIELD relationshipsWritten;
+
+CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH_REMAINING'],
+  remainingRelationshipType: 'APPEARED_WITH_IGNORED_FOR_TRAINING',
+  holdoutRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  holdoutFraction: 0.2
+}) YIELD relationshipsWritten;
+----
+
+
+== Train a link prediction model
+
+[source,cypher]
+----
+CALL gds.alpha.ml.linkPrediction.train('marvel_linkpred_data', {
+  trainRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  testRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  modelName: 'lp-appearance-model',
+  featureProperties: ['fastRP_embedding'],
+  validationFolds: 5,
+  classRatio: 1.33,
+  randomSeed: 2,
+  params: [
+    {penalty: 0.24, maxIterations: 1000},
+    {penalty: 0.5, maxIterations: 1000},
+    {penalty: 1.0, maxIterations: 1000},
+    {penalty: 0.0, maxIterations: 1000}
+  ]
+}) YIELD modelInfo
+RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.AUCPR.outerTrain AS trainGraphScore,
+  modelInfo.metrics.AUCPR.test AS testGraphScore
+----
+
+
+== Train a link prediction model - without an embedding
+
+[source,cypher]
+----
+CALL gds.alpha.ml.linkPrediction.train('marvel_linkpred_data', {
+  trainRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  testRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  modelName: 'lp-appearance-model-noEmbedding',
+  featureProperties: ['strength','speed','intelligence','durability'],
+  validationFolds: 5,
+  classRatio: 1.33,
+  randomSeed: 2,
+  params: [
+    {penalty: 0.24, maxIterations: 1000},
+    {penalty: 0.5, maxIterations: 1000},
+    {penalty: 1.0, maxIterations: 1000},
+    {penalty: 0.0, maxIterations: 1000}
+  ]
+}) YIELD modelInfo
+RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.AUCPR.outerTrain AS trainGraphScore,
+  modelInfo.metrics.AUCPR.test AS testGraphScore
+----
+
+== Predict missing relationships (who will appear in a future comic book together)
+
+[source,cypher]
+----
+CALL gds.alpha.ml.linkPrediction.predict.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH'], //filter out the known relationship type
+  modelName: 'lp-appearance-model',
+  mutateRelationshipType: 'APPEARED_WITH_PREDICTED',
+  topN: 500,
+  threshold: 0.49
+});
+
+CALL gds.graph.writeRelationship(
+  'marvel_linkpred_data',
+  'APPEARED_WITH_PREDICTED'
+);
+----
+
+Check predicted links
+
+[source,cypher]
+----
+MATCH (c1:Character)-[r:APPEARED_WITH_PREDICTED]->(c2:Character)
+RETURN c1.name, c2.name
+----
+
+Group by no. suggested characters to appear with
+
+[source,cypher]
+----
+MATCH (c1:Character)-[r:APPEARED_WITH_PREDICTED]->(c2:Character)
+RETURN c1.name, collect(c2.name) AS characters ORDER BY size(characters) DESC
+----

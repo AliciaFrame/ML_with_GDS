@@ -1,6 +1,6 @@
 # Machine Learning with Neo4j's Graph Data Science Library
 
-This library contains a demo of Neo4j's new *node classification* and *link prediction* algorithms - as applied to the Marvel Universe. It's built on top of Tomasnojo's Marvel Graph Gist available [here](https://gist.github.com/tomasonjo/fbc6d617c3f6476a3a825b5dd22fd29a). 
+This library contains a demo of Neo4j's new *node classification* and *link prediction* algorithms - as applied to the Marvel Universe. It's built on top of Tomasnojo's Marvel Graph Gist available [here](https://gist.github.com/tomasonjo/fbc6d617c3f6476a3a825b5dd22fd29a).
 
 This demo shows how to:
 1) Prepare data for using an ML model
@@ -13,3 +13,11 @@ I've also uploaded a bloom perspective, to let you explore your results visually
 
 For further documentation on using the GDS ML functions, check out our docs [here](https://neo4j.com/docs/graph-data-science/1.5/algorithms/ml-models/)
 
+
+## BrowserGuides
+
+Added [browser guide](https://neo4j.com/developer/guide-create-neo4j-browser-guide/) to allow to repeat/share the example
+
+Can either:
+1) Run from existing .html files in browserguide hosted under a web server
+2) Build from adocs using render.sh

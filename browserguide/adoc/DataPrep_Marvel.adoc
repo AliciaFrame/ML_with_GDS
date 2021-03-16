@@ -1,7 +1,17 @@
-//1. Load data - from https://gist.github.com/tomasonjo/fbc6d617c3f6476a3a825b5dd22fd29a
+= ML with GDS
 
+== Create Schema
+
+[source,cypher]
+----
 CALL apoc.schema.assert({Character:['name']},{Comic:['id'], Character:['id'], Event:['id'], Group:['id']});
+----
 
+== Load Nodes
+
+
+[source,cypher]
+----
 LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroes.csv" as row
 CREATE (c:Character)
 SET c += row;
@@ -17,7 +27,12 @@ SET c += row;
 LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/comics.csv" as row
 CREATE (c:Comic)
 SET c += apoc.map.clean(row,[],["null"]);
+----
 
+== Load Relationships
+
+[source,cypher]
+----
 LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroToComics.csv" as row
 MATCH (c:Character{id:row.hero})
 MATCH (co:Comic{id:row.comic})
@@ -48,6 +63,7 @@ LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-dat
 MATCH (s:Character{id:row.hero})
 SET s.flight = row.flight;
 
+// Convert stat values to Integer
 MATCH (s:Stats)
 WITH keys(s) as keys LIMIT 1
 MATCH (s:Stats)
@@ -55,3 +71,48 @@ UNWIND keys as key
 CALL apoc.create.setProperty(s, key, toInteger(s[key]))
 YIELD node
 RETURN distinct 'done';
+
+----
+
+== Move Character Traits to Character Nodes
+
+[source,cypher]
+----
+MATCH (c:Character)-[:HAS_STATS]->(s)
+WITH c, s.strength as strength, s.fighting_skills as fighting_skills, s.durability as durability, s.speed as speed, s.intelligence as intelligence, s.energy as energy
+SET c.strength=strength,
+    c.fighting_skills=fighting_skills,
+    c.durability=durability,
+    c.speed=speed,
+    c.intelligence=intelligence,
+    c.energy=energy
+RETURN count(c)
+----
+
+
+== Create APPEARED_WITH relationship
+
+[source,cypher]
+----
+MATCH (c1:Character)-[:APPEARED_IN]->(c:Comic)<-[:APPEARED_IN]-(c2:Character)
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH{times:weight}]->(c2)
+MERGE (c2)-[:APPEARED_WITH{times:weight}]->(c1)
+----
+
+One hot encode group membership
+
+[source,cypher]
+----
+MATCH (group:Group)
+WITH group
+   ORDER BY group.name
+WITH collect(group) AS groups
+MATCH (c:Character)
+WITH c, gds.alpha.ml.oneHotEncoding(groups, [(c)-[:PART_OF_GROUP]->(group) | group]) as group_membership
+SET c.group_membership=group_membership
+----
+
+== Next steps
+
+. pass:a[<a play-topic='http://localhost:8001/ML_Marvel.html'>Generate Features and Run ML</a>]

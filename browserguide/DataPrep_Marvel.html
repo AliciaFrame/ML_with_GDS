@@ -1,0 +1,223 @@
+<style type="text/css" media="screen">
+/*
+.nodes-image {
+	margin:-100;
+}
+*/	
+@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
+
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
+.listingblock {margin:8px;}
+.pull-bottom {position:relative;bottom:1em;}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.admonitionblock.note.speaker { display:none; }
+</style>
+<style type="text/css" media="screen">
+/* #editor.maximize-editor .CodeMirror-code { font-size:24px; line-height:26px; } */
+</style>
+<article class="guide" ng-controller="AdLibDataController">
+  <carousel class="deck container-fluid">
+    <!--slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>ML with GDS</h3>
+        <p class="lead">Information</p>
+			<!dl>
+				
+				
+				
+				
+				
+			</dl>
+		</div>
+      <div class="col-sm-9">
+        <figure>
+          <img style="width:300px" src=""/>
+        </figure>
+      </div>
+    </slide-->
+    
+
+
+   <h4>ML with GDS</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Create Schema</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL apoc.schema.assert({Character:['name']},{Comic:['id'], Character:['id'], Event:['id'], Group:['id']});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Load Nodes</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroes.csv" as row
+CREATE (c:Character)
+SET c += row;
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/groups.csv" as row
+CREATE (c:Group)
+SET c += row;
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/events.csv" as row
+CREATE (c:Event)
+SET c += row;
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/comics.csv" as row
+CREATE (c:Comic)
+SET c += apoc.map.clean(row,[],["null"]);<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Load Relationships</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroToComics.csv" as row
+MATCH (c:Character{id:row.hero})
+MATCH (co:Comic{id:row.comic})
+MERGE (c)-[:APPEARED_IN]-&gt;(co);
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroToEvent.csv" as row
+MATCH (c:Character{id:row.hero})
+MATCH (e:Event{id:row.event})
+MERGE (c)-[:PART_OF_EVENT]-&gt;(e);
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroToGroup.csv" as row
+MATCH (c:Character{id:row.hero})
+MATCH (g:Group{id:row.group})
+MERGE (c)-[:PART_OF_GROUP]-&gt;(g);
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroToHero.csv" as row
+MATCH (s:Character{id:row.source})
+MATCH (t:Character{id:row.target})
+CALL apoc.create.relationship(s,row.type, {}, t) YIELD rel
+RETURN distinct 'done';
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroStats.csv" as row
+MATCH (s:Character{id:row.hero})
+CREATE (s)-[:HAS_STATS]-&gt;(stats:Stats)
+SET stats += apoc.map.clean(row,['hero'],[]);
+
+LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/blog-datasets/main/Marvel/heroFlight.csv" as row
+MATCH (s:Character{id:row.hero})
+SET s.flight = row.flight;
+
+// Convert stat values to Integer
+MATCH (s:Stats)
+WITH keys(s) as keys LIMIT 1
+MATCH (s:Stats)
+UNWIND keys as key
+CALL apoc.create.setProperty(s, key, toInteger(s[key]))
+YIELD node
+RETURN distinct 'done';<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Move Character Traits to Character Nodes</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)-[:HAS_STATS]-&gt;(s)
+WITH c, s.strength as strength, s.fighting_skills as fighting_skills, s.durability as durability, s.speed as speed, s.intelligence as intelligence, s.energy as energy
+SET c.strength=strength,
+    c.fighting_skills=fighting_skills,
+    c.durability=durability,
+    c.speed=speed,
+    c.intelligence=intelligence,
+    c.energy=energy
+RETURN count(c)<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Create APPEARED_WITH relationship</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[:APPEARED_IN]-&gt;(c:Comic)&lt;-[:APPEARED_IN]-(c2:Character)
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH{times:weight}]-&gt;(c2)
+MERGE (c2)-[:APPEARED_WITH{times:weight}]-&gt;(c1)<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>One hot encode group membership</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (group:Group)
+WITH group
+   ORDER BY group.name
+WITH collect(group) AS groups
+MATCH (c:Character)
+WITH c, gds.alpha.ml.oneHotEncoding(groups, [(c)-[:PART_OF_GROUP]-&gt;(group) | group]) as group_membership
+SET c.group_membership=group_membership<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Next steps</h3>
+    <br/>
+    <div>
+      <div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a play-topic='http://localhost:8001/ML_Marvel.html'>Generate Features and Run ML</a></p>
+</li>
+</ol>
+</div>
+	</div>
+  </div>
+</slide>
+  </carousel>
+</article>

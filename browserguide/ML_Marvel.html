@@ -1,0 +1,730 @@
+<style type="text/css" media="screen">
+/*
+.nodes-image {
+	margin:-100;
+}
+*/	
+@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
+
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
+.listingblock {margin:8px;}
+.pull-bottom {position:relative;bottom:1em;}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.admonitionblock.note.speaker { display:none; }
+</style>
+<style type="text/css" media="screen">
+/* #editor.maximize-editor .CodeMirror-code { font-size:24px; line-height:26px; } */
+</style>
+<article class="guide" ng-controller="AdLibDataController">
+  <carousel class="deck container-fluid">
+    <!--slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>Feature Engineering</h3>
+        <p class="lead">Information</p>
+			<!dl>
+				
+				
+				
+				
+				
+			</dl>
+		</div>
+      <div class="col-sm-9">
+        <figure>
+          <img style="width:300px" src=""/>
+        </figure>
+      </div>
+    </slide-->
+    
+
+
+   <h4>Feature Engineering</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Load Graph with features into Analytical Workspace</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.create(
+  'marvel-character-graph',
+  {
+    Character: {
+      label: 'Character',
+      properties: {
+      strength:{property:'strength',defaultValue:0},
+      fighting_skills:{property:'fighting_skills', defaultValue:0},
+      durability:{property:'durability', defaultValue:0},
+      speed:{property:'speed', defaultValue:0},
+      intelligence:{property:'intelligence', defaultValue:0},
+      group_membership:{property:'group_membership',defaultValue: 0}
+      }
+    }
+  }, {
+    APPEARS_WITH_UNDIRECTED: {
+      type: 'APPEARED_WITH',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE',
+      properties: ['times']
+    },
+    APPEARS_WITH_DIRECTED: {
+      type: 'APPEARED_WITH',
+      orientation: 'NATURAL',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    },
+    ALLY_UNDIRECTED: {
+      type: 'ALLY',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE'
+    },
+    ALLY_DIRECTED: {
+      type: 'ALLY',
+      orientation: 'NATURAL',
+      aggregation: 'SINGLE'
+    },
+    ENEMY_UNDIRECTED: {
+      type: 'ENEMY',
+      orientation: 'UNDIRECTED',
+      aggregation: 'SINGLE'
+    },
+    ENEMY_DIRECTED: {
+      type: 'ENEMY',
+      orientation: 'NATURAL',
+      aggregation: 'SINGLE'
+    }
+
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Calculate Features - Centrality - PageRank</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>The PageRank algorithm measures the importance of each node within the graph, based on the number incoming relationships and the importance of the corresponding source nodes. The underlying assumption roughly speaking is that a page is only as important as the pages that link to it.</p>
+</div>
+<div class="paragraph">
+<p>Mutate in Analytical Workspace</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_DIRECTED'],
+     mutateProperty: 'appeared_with_pageRank'
+});
+CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_DIRECTED'],
+     mutateProperty: 'ally_pageRank'
+});
+CALL gds.pageRank.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_DIRECTED'],
+     mutateProperty: 'enemy_pageRank'
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Calculate Features - Centrality - Betweenness</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Betweenness centrality is a way of detecting the amount of influence a node has over the flow of information in a graph. It is often used to find nodes that serve as a bridge from one part of a graph to another.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_UNDIRECTED'],
+     mutateProperty: 'appeared_with_betweenness'
+});
+CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_UNDIRECTED'],
+     mutateProperty: 'ally_betweenness'
+});
+CALL gds.betweenness.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_UNDIRECTED'],
+     mutateProperty: 'enemy_betweenness'
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Calculate Features - Centrality - HITS</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>The Hyperlink-Induced Topic Search (HITS) is a link analysis algorithm that rates nodes based on two scores, a hub score and an authority score. The authority score estimates the importance of the node within the network. The hub score estimates the value of its relationships to other nodes.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['APPEARS_WITH_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'appeared_with_auth',
+     hubProperty: 'appeared_with_hub'
+});
+CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['ALLY_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'ally_auth',
+     hubProperty: 'ally_hub'
+});
+CALL gds.alpha.hits.mutate('marvel-character-graph',{
+     relationshipTypes: ['ENEMY_DIRECTED'],
+     hitsIterations: 50,
+     authProperty: 'enemy_auth',
+     hubProperty: 'enemy_hub'
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Persist features</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.writeNodeProperties(
+  'marvel-character-graph',
+  ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_auth','ally_pageRank',
+  'ally_betweenness','ally_hub','ally_auth','enemy_pageRank','enemy_betweenness','enemy_auth','enemy_hub'],
+  ['Character']
+);<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Compute Embeddings - fastRP</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.beta.fastRPExtended.write('marvel-character-graph',{
+    relationshipTypes:['APPEARS_WITH_UNDIRECTED'],
+    featureProperties: ['strength','fighting_skills','durability','speed','intelligence','appeared_with_pageRank','ally_pageRank','enemy_pageRank','appeared_with_betweenness','ally_betweenness','enemy_betweenness','appeared_with_hub','appeared_with_auth','ally_hub','ally_auth','enemy_hub','enemy_auth'],
+    relationshipWeightProperty: 'times',
+    propertyDimension: 45,
+    embeddingDimension: 250,
+    iterationWeights: [0, 0, 1.0, 1.0],
+    normalizationStrength:0.05,
+    writeProperty: 'fastRP_Extended_Embedding'
+})<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Drop Extra Graphs</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->call gds.graph.drop('marvel-character-graph');<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+   <h4>Node Classification</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Train Node Classification Model in Neo4j</h3>
+    <br/>
+    <div>
+      <div class="col-lg-4">
+<img src="http://localhost:8001/img/NodeClassification.png" class="img-responsive">
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Label Data</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Select &amp; label the data for the model -find the x-men and tag them, then flag to use in model</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)-[:PART_OF_GROUP]-&gt;(g:Group{name:'X-Men'})
+SET c.is_xman=1, c:Model_Data;<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Find and include some unaffiliated individuals that are very far from x-men (but not orphan nodes)
+ there are way more not x-men (133 with other affiliations, 936 with no known group) so we need to downsample for training</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
+WHERE NOT (c)-[:PART_OF_GROUP]-&gt;(:Group) WITH c
+WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
+AND apoc.node.degree(c)&gt;0 WITH c
+WHERE rand() &lt; 0.13 // class rebalancing
+SET c:Model_Data, c.is_xman=0;<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Label the holdout data (to predict on)</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
+WHERE NOT (c:Model_Data)
+SET c:Holdout_Data;<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Load graph for class prediction</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.create(
+  'marvel_model_data',
+  {
+    Character: {
+      label: 'Model_Data',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    },
+    Holdout_Character: {
+      label: 'Holdout_Data',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    }
+  }, {
+    APPEARED_WITH: {
+      type: 'APPEARED_WITH',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    }
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Train node classifier to find x-men: fastRP</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.nodeClassification.train('marvel_model_data', {
+   nodeLabels: ['Character'],
+   modelName: 'xmen-model-fastRP',
+   featureProperties: ['fastRP_embedding'],
+   targetProperty: 'is_xman',
+   metrics: ['F1_WEIGHTED','ACCURACY'],
+   holdoutFraction: 0.2,
+   validationFolds: 5,
+   randomSeed: 2,
+   params: [
+       {penalty: 0.0625, maxIterations: 1000},
+       {penalty: 0.125, maxIterations: 1000},
+       {penalty: 0.25, maxIterations: 1000},
+       {penalty: 0.5, maxIterations: 1000},
+       {penalty: 1.0, maxIterations: 1000},
+       {penalty: 2.0, maxIterations: 1000},
+       {penalty: 4.0, maxIterations: 1000}
+       ]
+    }) YIELD modelInfo
+  RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
+  modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Compare to tabular properties</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.nodeClassification.train('marvel_model_data', {
+   nodeLabels: ['Character'],
+   modelName: 'xmen-model-properties',
+   featureProperties: ['energy','speed','strength','durability','intelligence'],
+   targetProperty: 'is_xman',
+   metrics: ['F1_WEIGHTED','ACCURACY'],
+   holdoutFraction: 0.2,
+   validationFolds: 5,
+   randomSeed: 2,
+   params: [
+       {penalty: 0.0625, maxIterations: 1000},
+       {penalty: 0.125, maxIterations: 1000},
+       {penalty: 0.25, maxIterations: 1000},
+       {penalty: 0.5, maxIterations: 1000},
+       {penalty: 1.0, maxIterations: 1000},
+       {penalty: 2.0, maxIterations: 1000},
+       {penalty: 4.0, maxIterations: 1000}
+       ]
+    }) YIELD modelInfo
+  RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
+  modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Lets predict node classes (aka: can we find more x-men?)</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.nodeClassification.predict.mutate('marvel_model_data', {
+  nodeLabels: ['Holdout_Character'], //filter our the character nodes
+  modelName: 'xmen-model-fastRP',
+  mutateProperty: 'predicted_xman',
+  predictedProbabilityProperty: 'predicted_xman_probability'
+});
+CALL gds.graph.writeNodeProperties(
+  'marvel_model_data',
+  ['predicted_xman', 'predicted_xman_probability'],
+  ['Holdout_Character']
+);<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Check our predicted node classes</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
+WHERE c.predicted_xman = 1 AND NOT c:Model_Data
+RETURN c.name, c.aliases, c.predicted_xman, c.predicted_xman_probability[1] as probability<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+   <h4>Link Prediction</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Train a Link Prediction Model in Neo4j</h3>
+    <br/>
+    <div>
+      <div class="col-lg-4">
+<img src="http://localhost:8001/img/LinkPrediction.png" class="img-responsive">
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Label Data</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Split the graph into the data we want to use for the model, and data to hold out to test afterwards</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[:APPEARED_IN]-&gt;(c:Comic)&lt;-[:APPEARED_IN]-(c2:Character)
+WHERE c.year &lt;&gt; "2020" AND c.year &lt;&gt; "2019" AND c.year &lt;&gt; "2018" AND c.year &lt;&gt; "2017" AND c.year &lt;&gt; "2016"
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH_MODEL{times:weight}]-&gt;(c2)
+MERGE (c2)-[:APPEARED_WITH_MODEL{times:weight}]-&gt;(c1);
+
+MATCH (c1:Character)-[:APPEARED_IN]-&gt;(c:Comic)&lt;-[:APPEARED_IN]-(c2:Character)
+WHERE c.year="2020" OR c.year="2019" OR c.year="2018" OR c.year="2017" OR c.year="2016"
+WITH c1, c2, count(c) as weight
+MERGE (c1)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c2)
+MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c1);<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Load graph for class prediction</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.create(
+  'marvel_linkpred_data',
+  {
+    Character: {
+      label: 'Character',
+      properties: {
+        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        strength:{property:'strength', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        energy:{property:'energy', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        is_xman:{property:'is_xman', defaultValue:0}
+      }
+    }
+  }, {
+    APPEARED_WITH: {
+      type: 'APPEARED_WITH_MODEL',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    },
+    APPEARED_WITH_HOLDOUT: {
+      type: 'APPEARED_WITH_HOLDOUT',
+      orientation: 'UNDIRECTED',
+      properties: ['times'],
+      aggregation: 'SINGLE'
+    }
+});<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Add test train splits to in-memory graph</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH'],
+  remainingRelationshipType: 'APPEARED_WITH_REMAINING',
+  holdoutRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  holdoutFraction: 0.2
+}) YIELD relationshipsWritten;
+
+CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH_REMAINING'],
+  remainingRelationshipType: 'APPEARED_WITH_IGNORED_FOR_TRAINING',
+  holdoutRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  holdoutFraction: 0.2
+}) YIELD relationshipsWritten;<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Train a link prediction model</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.linkPrediction.train('marvel_linkpred_data', {
+  trainRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  testRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  modelName: 'lp-appearance-model',
+  featureProperties: ['fastRP_embedding'],
+  validationFolds: 5,
+  classRatio: 1.33,
+  randomSeed: 2,
+  params: [
+    {penalty: 0.24, maxIterations: 1000},
+    {penalty: 0.5, maxIterations: 1000},
+    {penalty: 1.0, maxIterations: 1000},
+    {penalty: 0.0, maxIterations: 1000}
+  ]
+}) YIELD modelInfo
+RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.AUCPR.outerTrain AS trainGraphScore,
+  modelInfo.metrics.AUCPR.test AS testGraphScore<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Train a link prediction model - without an embedding</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.linkPrediction.train('marvel_linkpred_data', {
+  trainRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
+  testRelationshipType: 'APPEARED_WITH_TESTGRAPH',
+  modelName: 'lp-appearance-model-noEmbedding',
+  featureProperties: ['strength','speed','intelligence','durability'],
+  validationFolds: 5,
+  classRatio: 1.33,
+  randomSeed: 2,
+  params: [
+    {penalty: 0.24, maxIterations: 1000},
+    {penalty: 0.5, maxIterations: 1000},
+    {penalty: 1.0, maxIterations: 1000},
+    {penalty: 0.0, maxIterations: 1000}
+  ]
+}) YIELD modelInfo
+RETURN
+  modelInfo.bestParameters AS winningModel,
+  modelInfo.metrics.AUCPR.outerTrain AS trainGraphScore,
+  modelInfo.metrics.AUCPR.test AS testGraphScore<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Predict missing relationships (who will appear in a future comic book together)</h3>
+    <br/>
+    <div>
+      <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.alpha.ml.linkPrediction.predict.mutate('marvel_linkpred_data', {
+  relationshipTypes: ['APPEARED_WITH'], //filter out the known relationship type
+  modelName: 'lp-appearance-model',
+  mutateRelationshipType: 'APPEARED_WITH_PREDICTED',
+  topN: 500,
+  threshold: 0.49
+});
+
+CALL gds.graph.writeRelationship(
+  'marvel_linkpred_data',
+  'APPEARED_WITH_PREDICTED'
+);<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Check predicted links</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[r:APPEARED_WITH_PREDICTED]-&gt;(c2:Character)
+RETURN c1.name, c2.name<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Group by no. suggested characters to appear with</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[r:APPEARED_WITH_PREDICTED]-&gt;(c2:Character)
+RETURN c1.name, collect(c2.name) AS characters ORDER BY size(characters) DESC<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+  </carousel>
+</article>
