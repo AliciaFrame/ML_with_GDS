@@ -1,0 +1,15 @@
+
+= ML with GDS
+
+== Overview
+
+1. Prepare data for using an ML model
+2. Train graph embeddings as an input for a model
+3. Predict missing node labels (in this case, who's an X-Man)
+4. Predict missing relationships (who will appear in a future comic book together)
+5. Use the trained models to make predictions
+
+== Next Steps
+
+. pass:a[<a play-topic='http://localhost:8001/DataPrep_Marvel.html'>Data Prep</a>]
+. pass:a[<a play-topic='http://localhost:8001/ML_Marvel.html'>Let's predict</a>]
