@@ -61,12 +61,12 @@
     Character: {
       label: 'Character',
       properties: {
-      strength:{property:'strength',defaultValue:0},
-      fighting_skills:{property:'fighting_skills', defaultValue:0},
-      durability:{property:'durability', defaultValue:0},
-      speed:{property:'speed', defaultValue:0},
-      intelligence:{property:'intelligence', defaultValue:0},
-      group_membership:{property:'group_membership',defaultValue: 0}
+        strength:{property:'strength',defaultValue:0},
+        fighting_skills:{property:'fighting_skills', defaultValue:0},
+        durability:{property:'durability', defaultValue:0},
+        speed:{property:'speed', defaultValue:0},
+        intelligence:{property:'intelligence', defaultValue:0},
+        group_membership:{property:'group_membership',defaultValue: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
       }
     }
   }, {
@@ -220,7 +220,7 @@ CALL gds.alpha.hits.mutate('marvel-character-graph',{
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.writeNodeProperties(
   'marvel-character-graph',
-  ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_auth','ally_pageRank',
+  ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_hub','ally_pageRank',
   'ally_betweenness','ally_hub','ally_auth','enemy_pageRank','enemy_betweenness','enemy_auth','enemy_hub'],
   ['Character']
 );<!--/code--></pre>
@@ -312,11 +312,18 @@ SET c.is_xman=1, c:Model_Data;<!--/code--></pre>
 <div class="listingblock">
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
-WHERE NOT (c)-[:PART_OF_GROUP]-&gt;(:Group) WITH c
-WHERE NOT (c)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
-AND apoc.node.degree(c)&gt;0 WITH c
-WHERE rand() &lt; 0.13 // class rebalancing
-SET c:Model_Data, c.is_xman=0;<!--/code--></pre>
+  WHERE NOT (c)-[:PART_OF_GROUP]-&gt;(:Group)
+CALL{
+  WITH c
+  WITH c as character
+  WHERE NOT (character)-[:APPEARED_WITH*2..3]-(:Character{is_xman:1})
+    AND apoc.node.degree(character)&gt;0
+  WITH character
+    WHERE rand() &lt; 0.25 // class rebalancing
+  SET character:Model_Data, character.is_xman=0
+  RETURN character
+}
+RETURN count(c)<!--/code--></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -325,7 +332,7 @@ SET c:Model_Data, c.is_xman=0;<!--/code--></pre>
 <div class="listingblock">
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
-WHERE NOT (c:Model_Data)
+  WHERE NOT (c:Model_Data)
 SET c:Holdout_Data;<!--/code--></pre>
 </div>
 </div>
@@ -348,7 +355,7 @@ SET c:Holdout_Data;<!--/code--></pre>
     Character: {
       label: 'Model_Data',
       properties: {
-        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        fastRP_embedding:{property:'fastRP_Extended_Embedding'},
         strength:{property:'strength', defaultValue:0},
         durability:{property:'durability', defaultValue:0},
         intelligence:{property:'intelligence', defaultValue:0},
@@ -356,11 +363,11 @@ SET c:Holdout_Data;<!--/code--></pre>
         speed:{property:'speed', defaultValue:0},
         is_xman:{property:'is_xman', defaultValue:0}
       }
-    },
+  },
     Holdout_Character: {
       label: 'Holdout_Data',
       properties: {
-        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        fastRP_embedding:{property:'fastRP_Extended_Embedding'},
         strength:{property:'strength', defaultValue:0},
         durability:{property:'durability', defaultValue:0},
         intelligence:{property:'intelligence', defaultValue:0},
@@ -402,16 +409,16 @@ SET c:Holdout_Data;<!--/code--></pre>
    validationFolds: 5,
    randomSeed: 2,
    params: [
-       {penalty: 0.0625, maxIterations: 1000},
-       {penalty: 0.125, maxIterations: 1000},
-       {penalty: 0.25, maxIterations: 1000},
-       {penalty: 0.5, maxIterations: 1000},
-       {penalty: 1.0, maxIterations: 1000},
-       {penalty: 2.0, maxIterations: 1000},
-       {penalty: 4.0, maxIterations: 1000}
-       ]
-    }) YIELD modelInfo
-  RETURN
+      {penalty: 0.0625, maxEpochs: 1000},
+      {penalty: 0.125, maxEpochs: 1000},
+      {penalty: 0.25, maxEpochs: 1000},
+      {penalty: 0.5, maxEpochs: 1000},
+      {penalty: 1.0, maxEpochs: 1000},
+      {penalty: 2.0, maxEpochs: 1000},
+      {penalty: 4.0, maxEpochs: 1000}
+   ]
+}) YIELD modelInfo
+RETURN
   modelInfo.bestParameters AS winningModel,
   modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
   modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore<!--/code--></pre>
@@ -440,16 +447,16 @@ SET c:Holdout_Data;<!--/code--></pre>
    validationFolds: 5,
    randomSeed: 2,
    params: [
-       {penalty: 0.0625, maxIterations: 1000},
-       {penalty: 0.125, maxIterations: 1000},
-       {penalty: 0.25, maxIterations: 1000},
-       {penalty: 0.5, maxIterations: 1000},
-       {penalty: 1.0, maxIterations: 1000},
-       {penalty: 2.0, maxIterations: 1000},
-       {penalty: 4.0, maxIterations: 1000}
-       ]
-    }) YIELD modelInfo
-  RETURN
+      {penalty: 0.0625, maxEpochs: 1000},
+      {penalty: 0.125, maxEpochs: 1000},
+      {penalty: 0.25, maxEpochs: 1000},
+      {penalty: 0.5, maxEpochs: 1000},
+      {penalty: 1.0, maxEpochs: 1000},
+      {penalty: 2.0, maxEpochs: 1000},
+      {penalty: 4.0, maxEpochs: 1000}
+   ]
+}) YIELD modelInfo
+RETURN
   modelInfo.bestParameters AS winningModel,
   modelInfo.metrics.F1_WEIGHTED.outerTrain AS trainGraphScore,
   modelInfo.metrics.F1_WEIGHTED.test AS testGraphScore<!--/code--></pre>
@@ -487,8 +494,8 @@ CALL gds.graph.writeNodeProperties(
 <div class="listingblock">
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Character)
-WHERE c.predicted_xman = 1 AND NOT c:Model_Data
-RETURN c.name, c.aliases, c.predicted_xman, c.predicted_xman_probability[1] as probability<!--/code--></pre>
+  WHERE c.predicted_xman = 1 AND NOT c:Model_Data
+RETURN c.name, c.predicted_xman, c.predicted_xman_probability[1] as probability, c.aliases<!--/code--></pre>
 </div>
 </div>
 	</div>
@@ -526,13 +533,13 @@ RETURN c.name, c.aliases, c.predicted_xman, c.predicted_xman_probability[1] as p
 <div class="listingblock">
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[:APPEARED_IN]-&gt;(c:Comic)&lt;-[:APPEARED_IN]-(c2:Character)
-WHERE c.year &lt;&gt; "2020" AND c.year &lt;&gt; "2019" AND c.year &lt;&gt; "2018" AND c.year &lt;&gt; "2017" AND c.year &lt;&gt; "2016"
+  WHERE c.year &lt;&gt; "2020" AND c.year &lt;&gt; "2019" AND c.year &lt;&gt; "2018" AND c.year &lt;&gt; "2017" AND c.year &lt;&gt; "2016"
 WITH c1, c2, count(c) as weight
 MERGE (c1)-[:APPEARED_WITH_MODEL{times:weight}]-&gt;(c2)
 MERGE (c2)-[:APPEARED_WITH_MODEL{times:weight}]-&gt;(c1);
 
 MATCH (c1:Character)-[:APPEARED_IN]-&gt;(c:Comic)&lt;-[:APPEARED_IN]-(c2:Character)
-WHERE c.year="2020" OR c.year="2019" OR c.year="2018" OR c.year="2017" OR c.year="2016"
+  WHERE c.year="2020" OR c.year="2019" OR c.year="2018" OR c.year="2017" OR c.year="2016"
 WITH c1, c2, count(c) as weight
 MERGE (c1)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c2)
 MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c1);<!--/code--></pre>
@@ -557,7 +564,7 @@ MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c1);<!--/code--></pre>
     Character: {
       label: 'Character',
       properties: {
-        fastRP_embedding:{property:'fastRP_Extended_Embedding', defaultValue:0},
+        fastRP_embedding:{property:'fastRP_Extended_Embedding'},
         strength:{property:'strength', defaultValue:0},
         durability:{property:'durability', defaultValue:0},
         intelligence:{property:'intelligence', defaultValue:0},
@@ -572,7 +579,7 @@ MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c1);<!--/code--></pre>
       orientation: 'UNDIRECTED',
       properties: ['times'],
       aggregation: 'SINGLE'
-    },
+  },
     APPEARED_WITH_HOLDOUT: {
       type: 'APPEARED_WITH_HOLDOUT',
       orientation: 'UNDIRECTED',
@@ -599,14 +606,16 @@ MERGE (c2)-[:APPEARED_WITH_HOLDOUT{times:weight}]-&gt;(c1);<!--/code--></pre>
   relationshipTypes: ['APPEARED_WITH'],
   remainingRelationshipType: 'APPEARED_WITH_REMAINING',
   holdoutRelationshipType: 'APPEARED_WITH_TESTGRAPH',
-  holdoutFraction: 0.2
+  holdoutFraction: 0.2,
+  negativeSamplingRatio: 1.33
 }) YIELD relationshipsWritten;
 
 CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
   relationshipTypes: ['APPEARED_WITH_REMAINING'],
   remainingRelationshipType: 'APPEARED_WITH_IGNORED_FOR_TRAINING',
   holdoutRelationshipType: 'APPEARED_WITH_TRAINGRAPH',
-  holdoutFraction: 0.2
+  holdoutFraction: 0.2,
+  negativeSamplingRatio: 1.33
 }) YIELD relationshipsWritten;<!--/code--></pre>
 </div>
 </div>
@@ -629,13 +638,13 @@ CALL gds.alpha.ml.splitRelationships.mutate('marvel_linkpred_data', {
   modelName: 'lp-appearance-model',
   featureProperties: ['fastRP_embedding'],
   validationFolds: 5,
-  classRatio: 1.33,
+  negativeClassWeight: 1.0 / 1.33,
   randomSeed: 2,
   params: [
-    {penalty: 0.24, maxIterations: 1000},
-    {penalty: 0.5, maxIterations: 1000},
-    {penalty: 1.0, maxIterations: 1000},
-    {penalty: 0.0, maxIterations: 1000}
+    {penalty: 0.24, maxEpochs: 1000},
+    {penalty: 0.5, maxEpochs: 1000},
+    {penalty: 1.0, maxEpochs: 1000},
+    {penalty: 0.0, maxEpochs: 1000}
   ]
 }) YIELD modelInfo
 RETURN
@@ -663,13 +672,13 @@ RETURN
   modelName: 'lp-appearance-model-noEmbedding',
   featureProperties: ['strength','speed','intelligence','durability'],
   validationFolds: 5,
-  classRatio: 1.33,
+  negativeClassWeight: 1.0 / 1.33,
   randomSeed: 2,
   params: [
-    {penalty: 0.24, maxIterations: 1000},
-    {penalty: 0.5, maxIterations: 1000},
-    {penalty: 1.0, maxIterations: 1000},
-    {penalty: 0.0, maxIterations: 1000}
+   {penalty: 0.24, maxEpochs: 1000},
+   {penalty: 0.5, maxEpochs: 1000},
+   {penalty: 1.0, maxEpochs: 1000},
+   {penalty: 0.0, maxEpochs: 1000}
   ]
 }) YIELD modelInfo
 RETURN
@@ -721,6 +730,39 @@ RETURN c1.name, c2.name<!--/code--></pre>
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c1:Character)-[r:APPEARED_WITH_PREDICTED]-&gt;(c2:Character)
 RETURN c1.name, collect(c2.name) AS characters ORDER BY size(characters) DESC<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Tidy Up</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Remove Projected Graphs</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.list() YIELD graphName AS name
+WITH name
+CALL gds.graph.drop(name) YIELD graphName
+RETURN graphName<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Remove Trained Models</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.beta.model.list() YIELD modelInfo AS info
+WITH info.modelName AS name
+CALL gds.beta.model.drop(name) YIELD modelInfo
+RETURN modelInfo.modelName AS modelName<!--/code--></pre>
 </div>
 </div>
 	</div>
