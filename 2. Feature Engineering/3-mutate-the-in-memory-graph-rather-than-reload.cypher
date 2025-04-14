@@ -49,7 +49,7 @@ CALL gds.alpha.hits.mutate('marvel-character-graph',{
 
 // write back properties 
 CALL gds.graph.writeNodeProperties(
-  'marvel-character-grap',
+  'marvel-character-graph',
   ['appeared_with_pageRank', 'appeared_with_betweenness','appeared_with_auth','appeared_with_auth','ally_pageRank',
   'ally_betweenness','ally_hub','ally_auth','enemy_pageRank','enemy_betweenness','enemy_hub','enemy_auth'],
   ['Character']
